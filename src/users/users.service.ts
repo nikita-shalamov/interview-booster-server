@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { hash } from 'argon2';
 
 @Injectable()
 export class UsersService {
@@ -17,10 +18,12 @@ export class UsersService {
     private cache: Cache,
   ) {}
 
-  private readonly logger = new Logger(UsersService.name);
-
-  async create(createUserDto: CreateUserDto) {
-    return await this.userRepository.save(createUserDto);
+  async create(dto: CreateUserDto) {
+    const user = {
+      ...dto,
+      password: await hash(dto.password),
+    };
+    return await this.userRepository.save(user);
   }
 
   findAll() {
@@ -38,6 +41,10 @@ export class UsersService {
     if (user) await this.cache.set(key, user, 10000);
 
     return user;
+  }
+
+  async findByEmail(email: string) {
+    return await this.userRepository.findOneBy({ email });
   }
 
   async update(id: number, dto: UpdateUserDto) {
