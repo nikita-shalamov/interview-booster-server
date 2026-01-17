@@ -5,9 +5,15 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ nullable: true })
+  name: string;
+
   @Column()
   email: string;
 
-  @Column()
-  password: string;
+  @Column({ nullable: true })
+  password?: string;
+
+  @Column({ nullable: true })
+  googleId?: string;
 }

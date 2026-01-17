@@ -21,9 +21,13 @@ export class UsersService {
   async create(dto: CreateUserDto) {
     const user = {
       ...dto,
-      password: await hash(dto.password),
+      password: dto.password ? await hash(dto.password) : undefined,
     };
     return await this.userRepository.save(user);
+  }
+
+  async findByGoogleId(googleId: string) {
+    return await this.userRepository.findOneBy({ googleId });
   }
 
   findAll() {

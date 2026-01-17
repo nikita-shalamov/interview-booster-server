@@ -10,6 +10,7 @@ import { AuthDto } from './dto/auth.dto';
 import { verify } from 'argon2';
 import { Response } from 'express';
 import { User } from 'src/users/entities/user.entity';
+import { Errors } from './enums/errors';
 
 @Injectable()
 export class AuthService {
@@ -33,15 +34,38 @@ export class AuthService {
   }
 
   async register(dto: AuthDto) {
-    const oldUser = await this.usersService.findByEmail(dto.email);
+    const findUser = await this.usersService.findByEmail(dto.email);
 
-    if (oldUser) throw new BadRequestException('User already exists');
+    if (findUser) throw new BadRequestException(Errors.USER_ALREADY_EXISTS);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...user } = await this.usersService.create(dto);
 
     const tokens = this.issueTokens(user.id);
 
+    return {
+      user,
+      ...tokens,
+    };
+  }
+
+  async googleAuth(dto: AuthDto) {
+    const findUser = await this.usersService.findByGoogleId(dto.googleId);
+
+    if (findUser) {
+      const tokens = this.issueTokens(findUser.id);
+      return {
+        user: {
+          id: findUser.id,
+          email: findUser.email,
+          name: findUser.name,
+        },
+        ...tokens,
+      };
+    }
+
+    const user = await this.usersService.create(dto);
+    const tokens = this.issueTokens(user.id);
     return {
       user,
       ...tokens,
@@ -59,17 +83,24 @@ export class AuthService {
       expiresIn: '30d',
     });
 
-    return { accessToken, refreshToken };
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresAt: expiresAt.toISOString(),
+    };
   }
 
   async getNewTokens(refreshToken: string) {
     const res: User = await this.jwt.verifyAsync(refreshToken);
 
-    if (!res) throw new UnauthorizedException('Invalid refresh token');
+    if (!res) throw new UnauthorizedException(Errors.INVALID_REFRESH_TOKEN);
 
     const result = await this.usersService.findOne(res.id);
 
-    if (!result) throw new NotFoundException('User not found');
+    if (!result) throw new NotFoundException(Errors.USER_NOT_FOUND);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...user } = result;
@@ -85,11 +116,11 @@ export class AuthService {
   private async validateUser(dto: AuthDto) {
     const user = await this.usersService.findByEmail(dto.email);
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException(Errors.USER_NOT_FOUND);
 
-    const isValid = (await verify(user.password, dto.password)) as boolean;
+    const isValid = await verify(user.password ?? '', dto.password);
 
-    if (!isValid) throw new UnauthorizedException('Invalid password');
+    if (!isValid) throw new UnauthorizedException(Errors.INVALID_CREDENTIALS);
 
     return user;
   }
