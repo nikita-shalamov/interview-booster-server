@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Onboarding } from '../../onboarding/entities/onboarding.entity';
 
 @Entity('users')
 export class User {
@@ -16,4 +17,7 @@ export class User {
 
   @Column({ nullable: true })
   googleId?: string;
+
+  @OneToOne(() => Onboarding, (onboarding) => onboarding.user)
+  onboarding?: Onboarding;
 }

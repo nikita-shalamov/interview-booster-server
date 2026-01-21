@@ -7,10 +7,13 @@ import {
   Delete,
   Put,
   ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { User } from 'src/auth/decorators/user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -21,23 +24,39 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Get()
+  @Get('all')
   findAll() {
     return this.usersService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  @Auth()
+  @Get()
+  getProfile(@User('id') currentUserId: number) {
+    return this.usersService.findOne(currentUserId);
   }
 
+  @Auth()
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+    @User('id') currentUserId: number,
+  ) {
+    if (id !== currentUserId) {
+      throw new ForbiddenException('You can only update your own data');
+    }
+    return this.usersService.update(id, updateUserDto);
   }
 
+  @Auth()
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @User('id') currentUserId: number,
+  ) {
+    if (id !== currentUserId) {
+      throw new ForbiddenException('You can only delete your own account');
+    }
+    return this.usersService.remove(id);
   }
 }
