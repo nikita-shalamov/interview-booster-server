@@ -5,11 +5,18 @@ import {
   IsArray,
   IsNumber,
 } from 'class-validator';
-import type { Role, Level, RoadmapItem } from '../entities/onboarding.entity';
+import type { Role, Level } from '../entities/onboarding.entity';
+import type { RoadmapStepKey } from '../../roadmap/entities/roadmap.entity';
 import { UIMessage } from 'ai';
+
+export interface RoadmapItemDto {
+  step: RoadmapStepKey;
+  count: number;
+}
 
 export class CreateOnboardingDto {
   messages: UIMessage[];
+
   @IsNumber()
   user_id: number;
 
@@ -57,5 +64,5 @@ export class CreateOnboardingDto {
 
   @IsOptional()
   @IsArray()
-  roadmap?: RoadmapItem[];
+  roadmap?: RoadmapItemDto[];
 }

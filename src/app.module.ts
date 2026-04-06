@@ -10,6 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
+import { RoadmapModule } from './roadmap/roadmap.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,6 +38,7 @@ import { ChatModule } from './chat/chat.module';
     OnboardingModule,
     AiModule,
     ChatModule,
+    RoadmapModule,
   ],
   controllers: [AppController],
   providers: [AppService],

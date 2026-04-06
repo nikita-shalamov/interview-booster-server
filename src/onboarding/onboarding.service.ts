@@ -9,6 +9,7 @@ import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { Onboarding } from './entities/onboarding.entity';
 import { onboardingAnalysisSchema } from './schemas/onboarding.schema';
 import { buildOnboardingPrompt } from './onboarding.prompts';
+import { RoadmapService } from '../roadmap/roadmap.service';
 
 type OnboardingAnalysisResult = z.infer<typeof onboardingAnalysisSchema>;
 
@@ -19,17 +20,33 @@ export class OnboardingService {
   constructor(
     @InjectRepository(Onboarding)
     private readonly onboardingRepository: Repository<Onboarding>,
+    private readonly roadmapService: RoadmapService,
   ) {}
 
   async create(dto: CreateOnboardingDto): Promise<Onboarding> {
     const aiResults = await this.generateOnboardingResults(dto.messages);
+    const { roadmap, ...onboardingAiData } = aiResults ?? {};
 
-    return await this.onboardingRepository.save(
+    const onboarding = await this.onboardingRepository.save(
       this.onboardingRepository.create({
         ...dto,
-        ...aiResults,
+        ...onboardingAiData,
       }),
     );
+
+    if (roadmap?.length) {
+      await this.roadmapService.create(
+        dto.user_id,
+        roadmap.map((item) => ({
+          key: item.step,
+          totalCount: item.count,
+          completedCount: 0,
+          isCompleted: false,
+        })),
+      );
+    }
+
+    return onboarding;
   }
 
   async findByUserId(userId: number): Promise<Onboarding> {
