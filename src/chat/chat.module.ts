@@ -9,7 +9,11 @@ import { AiModule } from 'src/ai/ai.module';
 import { OnboardingModule } from 'src/onboarding/onboarding.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Chat, Message]), AiModule, OnboardingModule],
+  imports: [
+    TypeOrmModule.forFeature([Chat, Message]),
+    AiModule,
+    OnboardingModule,
+  ],
   controllers: [ChatController],
   providers: [ChatService, MessageService],
 })

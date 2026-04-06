@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Roadmap, RoadmapStepItem, RoadmapStepKey } from './entities/roadmap.entity';
+import {
+  Roadmap,
+  RoadmapStepItem,
+  RoadmapStepKey,
+} from './entities/roadmap.entity';
 
 @Injectable()
 export class RoadmapService {
@@ -11,7 +15,9 @@ export class RoadmapService {
   ) {}
 
   async create(userId: number, steps: RoadmapStepItem[]): Promise<Roadmap> {
-    const existing = await this.roadmapRepository.findOne({ where: { user_id: userId } });
+    const existing = await this.roadmapRepository.findOne({
+      where: { user_id: userId },
+    });
     if (existing) return existing;
 
     return await this.roadmapRepository.save(
@@ -20,12 +26,18 @@ export class RoadmapService {
   }
 
   async findByUserId(userId: number): Promise<Roadmap> {
-    const roadmap = await this.roadmapRepository.findOne({ where: { user_id: userId } });
+    const roadmap = await this.roadmapRepository.findOne({
+      where: { user_id: userId },
+    });
     if (!roadmap) throw new NotFoundException('Roadmap not found');
     return roadmap;
   }
 
-  async updateStep(userId: number, stepKey: RoadmapStepKey, completedCount: number): Promise<Roadmap> {
+  async updateStep(
+    userId: number,
+    stepKey: RoadmapStepKey,
+    completedCount: number,
+  ): Promise<Roadmap> {
     const roadmap = await this.findByUserId(userId);
 
     roadmap.steps = roadmap.steps.map((step) => {

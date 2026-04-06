@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Response } from 'express';
-import { streamText, pipeDataStreamToResponse } from 'ai';
+import { streamText, ModelMessage } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { Message } from './entities/message.entity';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -52,38 +52,37 @@ export class MessageService {
     });
 
     let system = DEFAULT_SYSTEM;
-    try {
-      const onboarding = await this.onboardingService.findByUserId(userId);
-      system = `Ты персональный карьерный ассистент для IT-специалиста.
+
+    const onboarding = await this.onboardingService.findByUserId(userId);
+    system = `Ты персональный карьерный ассистент для IT-специалиста.
 Профиль пользователя:
 - Специализация: ${onboarding.role}
 - Уровень: ${onboarding.level}
 - Резюме: ${onboarding.resumeText}
 Помогай с карьерными вопросами: подготовка к интервью, улучшение резюме, переговоры об оффере и т.д.
 Отвечай на языке пользователя.`;
-    } catch {
-      // onboarding not found, use default
-    }
 
-    pipeDataStreamToResponse(res, {
-      execute: async (dataStream) => {
-        const result = streamText({
-          model: anthropic('claude-haiku-4-5'),
-          system,
-          messages: history.map((m) => ({ role: m.role, content: m.content })),
-        });
-
-        result.mergeIntoDataStream(dataStream);
-
-        const fullText = await result.text;
-        await this.messageRepository.save(
-          this.messageRepository.create({
-            chat_id: chatId,
-            role: 'assistant',
-            content: fullText,
-          }),
-        );
-      },
+    const result = streamText({
+      model: anthropic('claude-haiku-4-5'),
+      system,
+      messages: history.map(
+        (m) =>
+          ({
+            role: m.role,
+            content: m.content,
+          }) as ModelMessage,
+      ),
     });
+
+    result.pipeTextStreamToResponse(res);
+
+    const fullText = await result.text;
+    await this.messageRepository.save(
+      this.messageRepository.create({
+        chat_id: chatId,
+        role: 'assistant',
+        content: fullText,
+      }),
+    );
   }
 }
