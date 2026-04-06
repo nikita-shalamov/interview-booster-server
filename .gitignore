@@ -12,6 +12,10 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+CLAUDE.md
+PLAN.md
+PRODUCT.md
+
 # OS
 .DS_Store
 
@@ -45,6 +49,9 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+
+# Claude Code worktrees
+.claude/
 
 # Runtime data
 pids
