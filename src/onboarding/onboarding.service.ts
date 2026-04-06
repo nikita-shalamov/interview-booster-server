@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { CreateOnboardingDto } from './dto/create-onboarding.dto';
 import { UpdateOnboardingDto } from './dto/update-onboarding.dto';
 import { Onboarding } from './entities/onboarding.entity';
+import { RoadmapService } from '../roadmap/roadmap.service';
 
 @Injectable()
 export class OnboardingService {
   constructor(
     @InjectRepository(Onboarding)
     private readonly onboardingRepository: Repository<Onboarding>,
+    private readonly roadmapService: RoadmapService,
   ) {}
 
   async create(dto: CreateOnboardingDto): Promise<Onboarding> {
@@ -19,9 +21,25 @@ export class OnboardingService {
 
     if (existing) return existing;
 
-    return await this.onboardingRepository.save(
-      this.onboardingRepository.create(dto),
+    const { roadmap, ...onboardingData } = dto;
+
+    const onboarding = await this.onboardingRepository.save(
+      this.onboardingRepository.create(onboardingData),
     );
+
+    if (roadmap?.length) {
+      await this.roadmapService.create(
+        dto.user_id,
+        roadmap.map((item) => ({
+          key: item.step,
+          totalCount: item.count,
+          completedCount: 0,
+          isCompleted: false,
+        })),
+      );
+    }
+
+    return onboarding;
   }
 
   async findByUserId(userId: number): Promise<Onboarding> {

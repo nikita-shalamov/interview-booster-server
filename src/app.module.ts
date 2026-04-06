@@ -8,6 +8,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { AuthModule } from './auth/auth.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { RoadmapModule } from './roadmap/roadmap.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     UsersModule,
     AuthModule,
     OnboardingModule,
+    RoadmapModule,
   ],
   controllers: [AppController],
   providers: [AppService],

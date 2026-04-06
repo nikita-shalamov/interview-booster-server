@@ -32,17 +32,6 @@ export type RejectionStage =
   | 'hiring_manager'
   | 'after_offer';
 
-export type RoadmapStep =
-  | 'review_resume'
-  | 'hr_interview'
-  | 'tech_interview'
-  | 'cover_letter';
-
-export interface RoadmapItem {
-  step: RoadmapStep;
-  count: number;
-}
-
 @Entity('onboarding')
 export class Onboarding {
   @PrimaryGeneratedColumn()
@@ -77,6 +66,4 @@ export class Onboarding {
   @Column({ type: 'simple-array', nullable: true })
   bad: string[];
 
-  @Column({ type: 'json', nullable: true })
-  roadmap: RoadmapItem[];
 }
