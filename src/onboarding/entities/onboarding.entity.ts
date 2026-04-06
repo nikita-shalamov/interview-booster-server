@@ -26,12 +26,6 @@ export type Level =
   | 'senior'
   | 'not_sure';
 
-export type RejectionStage =
-  | 'no_response'
-  | 'hr_interview'
-  | 'hiring_manager'
-  | 'after_offer';
-
 export type RoadmapStep =
   | 'review_resume'
   | 'hr_interview'
@@ -61,15 +55,8 @@ export class Onboarding {
   @Column({ type: 'varchar', nullable: true })
   level: Level;
 
-  @Column({ type: 'varchar', nullable: true })
-  rejectionStage: RejectionStage;
-
   @Column({ type: 'text', nullable: true })
   resumeText: string;
-
-  // Результаты анализа
-  @Column({ type: 'varchar', nullable: true })
-  mostDifficult: RejectionStage;
 
   @Column({ type: 'simple-array', nullable: true })
   good: string[];

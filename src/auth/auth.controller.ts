@@ -5,13 +5,12 @@ import {
   UsePipes,
   ValidationPipe,
   HttpCode,
-  Res,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
-import type { Response, Request } from 'express';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -41,24 +40,12 @@ export class AuthController {
   @HttpCode(200)
   @Post('login/access-token')
   async getNewTokens(@Req() req: Request) {
-    const refreshTokenFromCookie = req.body.refreshToken;
+    const refreshToken = req.body.refreshToken;
 
-    if (!refreshTokenFromCookie) {
+    if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not passed');
     }
 
-    const response = await this.authService.getNewTokens(
-      refreshTokenFromCookie,
-    );
-
-    return response;
-  }
-
-  @HttpCode(200)
-  @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
-    this.authService.removeRefreshTokenFromResponse(res);
-
-    return true;
+    return await this.authService.getNewTokens(refreshToken);
   }
 }

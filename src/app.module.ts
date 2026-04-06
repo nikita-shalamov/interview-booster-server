@@ -8,7 +8,8 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { AuthModule } from './auth/auth.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
-
+import { AiModule } from './ai/ai.module';
+import { ChatModule } from './chat/chat.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,6 +34,8 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     UsersModule,
     AuthModule,
     OnboardingModule,
+    AiModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

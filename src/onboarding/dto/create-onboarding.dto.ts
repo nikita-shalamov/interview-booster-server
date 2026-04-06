@@ -5,14 +5,11 @@ import {
   IsArray,
   IsNumber,
 } from 'class-validator';
-import type {
-  Role,
-  Level,
-  RejectionStage,
-  RoadmapItem,
-} from '../entities/onboarding.entity';
+import type { Role, Level, RoadmapItem } from '../entities/onboarding.entity';
+import { UIMessage } from 'ai';
 
 export class CreateOnboardingDto {
+  messages: UIMessage[];
   @IsNumber()
   user_id: number;
 
@@ -42,16 +39,11 @@ export class CreateOnboardingDto {
   level?: Level;
 
   @IsOptional()
-  @IsEnum(['no_response', 'hr_interview', 'hiring_manager', 'after_offer'])
-  rejectionStage?: RejectionStage;
-
-  @IsOptional()
   @IsString()
   resumeText?: string;
 
   @IsOptional()
-  @IsEnum(['no_response', 'hr_interview', 'hiring_manager', 'after_offer'])
-  mostDifficult?: RejectionStage;
+  resume?: File;
 
   @IsOptional()
   @IsArray()
