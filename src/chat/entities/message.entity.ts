@@ -28,6 +28,9 @@ export class Message {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  attachments: { type: string; url: string; mimeType: string; filename?: string }[] | null;
+
   @CreateDateColumn()
   created_at: Date;
 }

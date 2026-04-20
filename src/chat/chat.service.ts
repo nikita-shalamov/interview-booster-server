@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Chat } from './entities/chat.entity';
-import { Message } from './entities/message.entity';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { AiService } from 'src/ai/ai.service';
 
@@ -19,7 +18,7 @@ export class ChatService {
   async createChat(
     userId: number,
     dto: CreateChatDto,
-  ): Promise<{ chat: Chat; message: Message }> {
+  ): Promise<{ chat: Chat }> {
     const title = await this.aiService.generateChatTitle(dto.content);
 
     return this.dataSource.transaction(async (manager) => {
@@ -29,14 +28,7 @@ export class ChatService {
       });
       await manager.save(chat);
 
-      const message = manager.create(Message, {
-        chat_id: chat.id,
-        role: 'user',
-        content: dto.content,
-      });
-      await manager.save(message);
-
-      return { chat, message };
+      return { chat };
     });
   }
 
