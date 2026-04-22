@@ -11,6 +11,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
 import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
 import { RoadmapModule } from './roadmap/roadmap.module';
+import { ResumeModule } from './resume/resume.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RoadmapModule } from './roadmap/roadmap.module';
     AiModule,
     ChatModule,
     RoadmapModule,
+    ResumeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
