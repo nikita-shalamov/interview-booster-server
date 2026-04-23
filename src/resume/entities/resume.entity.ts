@@ -4,10 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { ResumeDiff } from './resume-diff.entity';
 import type { ParsedResume, ResumeEvaluation } from '../types/resume.types';
 
 @Entity('resume')
@@ -45,6 +47,9 @@ export class Resume {
 
   @Column({ type: 'jsonb', nullable: true })
   atsRecommendations: string[];
+
+  @OneToMany(() => ResumeDiff, (d) => d.resume, { cascade: true })
+  diffs: ResumeDiff[];
 
   @CreateDateColumn()
   created_at: Date;

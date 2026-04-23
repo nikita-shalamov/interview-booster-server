@@ -1,7 +1,47 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { generateText } from 'ai';
+import { generateText, Output } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import type { ParsedResume } from '../resume/types/resume.types';
+import { z } from 'zod';
+import type {
+  ParsedResume,
+  ResumeEvaluation,
+} from '../resume/types/resume.types';
+
+const evaluationSchema = z.object({
+  overallScore: z.number(),
+  strengths: z.array(z.string()).min(1),
+  weaknesses: z.array(z.string()).min(1),
+  issues: z.array(
+    z.object({
+      description: z.string(),
+      severity: z.enum(['low', 'medium', 'high']),
+    }),
+  ),
+  recommendations: z.array(z.string()).min(1),
+  suitableRoles: z.array(z.string()).min(1),
+  estimatedLevel: z.enum(['junior', 'middle', 'senior']),
+});
+
+const atsSchema = z.object({
+  atsScore: z.number(),
+  issues: z.array(
+    z.object({
+      issue: z.string(),
+      severity: z.enum(['low', 'medium', 'high']),
+    }),
+  ),
+  recommendations: z.array(z.string()),
+});
+
+const diffListSchema = z.object({
+  diffs: z.array(
+    z.object({
+      original: z.string().min(1),
+      improved: z.string().min(1),
+      reason: z.string().min(1),
+    }),
+  ),
+});
 
 @Injectable()
 export class AiService {
@@ -65,6 +105,89 @@ Rules:
       .replace(/\s*```$/, '')
       .trim();
     return JSON.parse(clean) as ParsedResume;
+  }
+
+  async analyzeDiff(
+    parsedContent: ParsedResume,
+    role: string,
+    level: string,
+  ): Promise<{ original: string; improved: string; reason: string }[]> {
+    const { output } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system: `You are a professional resume coach. Analyze the resume and return a list of improvement suggestions.
+
+Context: candidate role — ${role}, level — ${level}.
+
+For each suggestion return:
+- original: exact text from the resume (a bullet point or summary sentence), copied character-for-character
+- improved: improved version in the same language
+- reason: 1-2 sentences why this is better
+
+Rules:
+- "original" must match exactly what is in the resume — do not paraphrase or trim
+- Focus on: quantifying achievements, stronger action verbs, adding missing context
+- Suggest improvements for 4-8 items across different sections
+- Tailor to level: junior — clarity and concrete results; senior — metrics and business impact`,
+      output: Output.object({ schema: diffListSchema }),
+      prompt: JSON.stringify(parsedContent),
+    });
+
+    return output.diffs;
+  }
+
+  async evaluateResume(
+    parsedContent: ParsedResume,
+    role: string,
+    level: string,
+  ): Promise<ResumeEvaluation> {
+    const { output } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system: `You are a professional resume reviewer. Evaluate the resume and return a structured assessment.
+
+Context: candidate role — ${role}, level — ${level}.
+
+Rules:
+- overallScore: 0–100, honest assessment of resume quality
+- strengths: 3–5 strong points
+- weaknesses: 3–5 areas that need improvement
+- issues: specific problems with severity (low/medium/high)
+- recommendations: top 3–5 actionable improvements
+- suitableRoles: job titles this resume is suitable for
+- estimatedLevel: your assessment of the candidate's level (junior/middle/senior)
+- Use the same language as the resume`,
+      output: Output.object({ schema: evaluationSchema }),
+      prompt: JSON.stringify(parsedContent),
+    });
+
+    return output as ResumeEvaluation;
+  }
+
+  async atsResume(parsedContent: ParsedResume): Promise<{
+    atsScore: number;
+    issues: { issue: string; severity: 'low' | 'medium' | 'high' }[];
+    recommendations: string[];
+  }> {
+    const { output } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system: `You are an ATS (Applicant Tracking System) expert. Evaluate the resume for ATS compatibility and return a structured result.
+
+Check:
+- Standard section headings (ATS scanners look for specific names)
+- Keywords relevant to the specialization
+- Absence of tables, columns, non-standard elements (parsed poorly by ATS)
+- Contact information completeness
+- Length and format
+
+Rules:
+- atsScore: 0–100, honest ATS compatibility score
+- issues: specific ATS problems with severity (low/medium/high)
+- recommendations: actionable fixes to improve ATS score
+- Use the same language as the resume`,
+      output: Output.object({ schema: atsSchema }),
+      prompt: JSON.stringify(parsedContent),
+    });
+
+    return output;
   }
 
   async searchGoogle(query: string): Promise<string> {
