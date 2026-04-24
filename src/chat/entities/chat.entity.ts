@@ -11,6 +11,8 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Message } from './message.entity';
 
+export type ChatType = 'hr_interview' | 'tech_interview' | 'cover_letter';
+
 @Entity('chats')
 export class Chat {
   @PrimaryGeneratedColumn()
@@ -25,6 +27,9 @@ export class Chat {
 
   @Column({ type: 'varchar', nullable: true })
   title: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  type: ChatType | null;
 
   @OneToMany(() => Message, (message) => message.chat)
   messages: Message[];

@@ -190,6 +190,47 @@ Rules:
     return output;
   }
 
+  async generateCoverLetter(params: {
+    resumeText: string;
+    role: string;
+    level: string;
+    type: 'universal' | 'targeted';
+    jobDescription?: string;
+  }): Promise<string> {
+    const { resumeText, role, level, type, jobDescription } = params;
+
+    const system =
+      type === 'targeted'
+        ? `You are a professional cover letter writer. Write a compelling cover letter tailored to the job description.
+Context: candidate role — ${role}, level — ${level}.
+Rules:
+- Address the specific requirements from the job description
+- Highlight relevant experience and skills from the resume
+- 3–4 paragraphs, professional tone
+- Use the same language as the resume
+- Return only the cover letter text, no subject line, no placeholders`
+        : `You are a professional cover letter writer. Write a compelling universal cover letter based on the resume.
+Context: candidate role — ${role}, level — ${level}.
+Rules:
+- Highlight the strongest skills and achievements from the resume
+- 3–4 paragraphs, professional tone
+- Use the same language as the resume
+- Return only the cover letter text, no subject line, no placeholders`;
+
+    const prompt =
+      type === 'targeted'
+        ? `Resume:\n${resumeText}\n\nJob description:\n${jobDescription}`
+        : `Resume:\n${resumeText}`;
+
+    const { text } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system,
+      prompt,
+    });
+
+    return text.trim();
+  }
+
   async searchGoogle(query: string): Promise<string> {
     try {
       const res = await fetch('https://api.tavily.com/search', {

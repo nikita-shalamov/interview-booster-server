@@ -12,6 +12,9 @@ import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
 import { RoadmapModule } from './roadmap/roadmap.module';
 import { ResumeModule } from './resume/resume.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CoverLetterModule } from './cover-letter/cover-letter.module';
+import { InterviewModule } from './interview/interview.module';
 
 @Module({
   imports: [
@@ -41,6 +44,9 @@ import { ResumeModule } from './resume/resume.module';
     ChatModule,
     RoadmapModule,
     ResumeModule,
+    DashboardModule,
+    CoverLetterModule,
+    InterviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],

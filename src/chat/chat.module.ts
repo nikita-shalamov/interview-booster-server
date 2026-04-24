@@ -7,12 +7,14 @@ import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
 import { AiModule } from 'src/ai/ai.module';
 import { OnboardingModule } from 'src/onboarding/onboarding.module';
+import { RoadmapModule } from 'src/roadmap/roadmap.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, Message]),
     AiModule,
     OnboardingModule,
+    RoadmapModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, MessageService],
