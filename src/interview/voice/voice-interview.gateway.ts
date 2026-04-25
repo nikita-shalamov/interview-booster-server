@@ -63,11 +63,27 @@ export class VoiceInterviewGateway
         `[start_session] 📋 Interview found: id=${interview.id} type=${interview.type} status=${interview.status}`,
       );
 
+      let questions = interview.questions;
+      if (!questions) {
+        this.logger.log(
+          `[start_session] 🤖 Generating questions for ${interview.type}...`,
+        );
+        questions = await this.llmService.generateQuestions(
+          interview.type,
+          interview.config ?? {},
+        );
+        await this.interviewService.updateQuestions(interview.id, questions);
+        this.logger.log(
+          `[start_session] ✅ Generated and saved ${questions.length} questions`,
+        );
+      }
+
       const session = new VoiceSession(
         data.interviewId,
         interview.type,
         data.language,
       );
+      session.questions = questions;
       this.sessions.set(client.id, session);
       this.logger.log(
         `[start_session] 🎤 VoiceSession created: type=${interview.type} language=${data.language}`,
@@ -188,6 +204,7 @@ export class VoiceInterviewGateway
     );
     const tokenStream = this.llmService.streamAnswer(
       session.interviewType,
+      session.questions,
       session.conversationHistory,
       userText,
     );

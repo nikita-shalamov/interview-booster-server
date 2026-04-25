@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { streamText } from 'ai';
+import { streamText, generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import type { InterviewType } from '../entities/interview.entity';
+import type { InterviewType, InterviewConfig, GeneratedQuestion } from '../entities/interview.entity';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -45,22 +45,87 @@ Rules:
 export class LlmInterviewerService {
   private readonly logger = new Logger(LlmInterviewerService.name);
 
+  async generateQuestions(
+    interviewType: InterviewType,
+    config: InterviewConfig,
+  ): Promise<GeneratedQuestion[]> {
+    this.logger.log(
+      `[generateQuestions] ▶️  START: type=${interviewType} config=${JSON.stringify(config)}`,
+    );
+
+    const questionCounts: Record<InterviewType, number> = {
+      test: 3,
+      behavioral: 5,
+      algorithms: 5,
+      system_design: 4,
+      full: 7,
+    };
+
+    const count = config.questionCount ?? questionCounts[interviewType];
+    const difficulty = config.difficulty ?? 'middle';
+    const topics = config.topics?.join(', ') ?? 'general';
+
+    const prompt = `You are an interview question generator. Generate exactly ${count} interview questions for a ${interviewType} interview.
+Difficulty level: ${difficulty}
+Topics: ${topics}
+
+Return ONLY a valid JSON array with no markdown code blocks, no extra text. Each object should have "index" (1-based) and "text" fields.
+Example format: [{"index": 1, "text": "Question 1?"}, {"index": 2, "text": "Question 2?"}]`;
+
+    const { text } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      prompt,
+    });
+
+    this.logger.log(`[generateQuestions] 🧠 Claude response: ${text.slice(0, 200)}...`);
+
+    let questions: GeneratedQuestion[];
+    try {
+      questions = JSON.parse(text);
+      this.logger.log(`[generateQuestions] ✅ Parsed ${questions.length} questions`);
+    } catch {
+      this.logger.error(`[generateQuestions] ❌ Failed to parse JSON: ${text}`);
+      throw new Error('Failed to generate questions');
+    }
+
+    return questions;
+  }
+
   async *streamAnswer(
     interviewType: InterviewType,
+    questions: GeneratedQuestion[],
     history: Message[],
     userText: string,
   ): AsyncGenerator<string> {
     this.logger.log(
-      `[streamAnswer] ▶️  START: type=${interviewType} userText="${userText}" historyLen=${history.length}`,
+      `[streamAnswer] ▶️  START: type=${interviewType} userText="${userText}" questionsLen=${questions.length} historyLen=${history.length}`,
     );
     history.push({ role: 'user', content: userText });
 
+    const questionsText = questions
+      .map((q) => `${q.index}. ${q.text}`)
+      .join('\n');
+
+    const systemPrompt = `${SYSTEM_PROMPTS[interviewType]}
+
+Questions to cover (in order):
+${questionsText}
+
+Based on the conversation history, work through the questions in order.
+You can ask follow-ups, request clarification, or ask the candidate to elaborate.
+If the answer is off-topic or incomplete, push back or ask again.
+Move to the next question only when satisfied with the current answer.
+
+When all questions are covered, say "interview complete".
+
+${COMMON_RULES}`;
+
     this.logger.log(
-      `[streamAnswer] 🧠 Using ${interviewType} interview prompt, streaming tokens from Claude Haiku...`,
+      `[streamAnswer] 🧠 Using ${interviewType} interview prompt with ${questions.length} questions, streaming tokens from Claude Haiku...`,
     );
     const { textStream } = streamText({
       model: anthropic('claude-haiku-4-5'),
-      system: SYSTEM_PROMPTS[interviewType] + COMMON_RULES,
+      system: systemPrompt,
       messages: history,
     });
 

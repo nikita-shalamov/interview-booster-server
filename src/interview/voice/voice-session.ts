@@ -1,4 +1,4 @@
-import type { InterviewType } from '../entities/interview.entity';
+import type { InterviewType, GeneratedQuestion } from '../entities/interview.entity';
 import type { Message } from './llm-interviewer.service';
 import type { DeepgramClient } from '@deepgram/sdk';
 
@@ -17,6 +17,7 @@ export class VoiceSession {
   transcripts: Transcript[] = [];
   deepgramConnection: DeepgramConnection | null = null;
   audioBuffer: Buffer[] = [];
+  questions: GeneratedQuestion[] = [];
 
   constructor(
     public readonly interviewId: number,

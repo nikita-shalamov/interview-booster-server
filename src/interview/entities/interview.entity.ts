@@ -13,6 +13,18 @@ import { InterviewAnswer } from './interview-answer.entity';
 export type InterviewType = 'full' | 'algorithms' | 'system_design' | 'behavioral' | 'test';
 export type InterviewStatus = 'pending' | 'in_progress' | 'completed';
 
+export type InterviewConfig = {
+  duration?: number;
+  difficulty?: 'junior' | 'middle' | 'senior';
+  topics?: string[];
+  questionCount?: number;
+};
+
+export type GeneratedQuestion = {
+  index: number;
+  text: string;
+};
+
 @Entity('interview')
 export class Interview {
   @PrimaryGeneratedColumn()
@@ -36,6 +48,12 @@ export class Interview {
 
   @Column({ type: 'text', nullable: true })
   feedback: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  config: InterviewConfig | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  questions: GeneratedQuestion[] | null;
 
   @OneToMany(() => InterviewAnswer, (a) => a.interview, { cascade: true })
   answers: InterviewAnswer[];

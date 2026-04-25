@@ -16,8 +16,11 @@ async function main() {
   const ttsService = new CartesiaTtsService();
   const llmService = new LlmInterviewerService();
 
+  console.log('Generating questions...');
+  const questions = await llmService.generateQuestions('behavioral', {});
+
   const history: Message[] = [];
-  const tokenStream = llmService.streamAnswer('behavioral', history, 'Привет, начнём интервью на русском языке.');
+  const tokenStream = llmService.streamAnswer('behavioral', questions, history, 'Привет, начнём интервью на русском языке.');
 
   const chunks: Buffer[] = [];
   let chunkCount = 0;

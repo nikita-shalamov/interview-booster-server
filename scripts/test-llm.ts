@@ -7,6 +7,10 @@ async function main() {
   const service = new LlmInterviewerService();
   const history: Message[] = [];
 
+  console.log('Generating questions...');
+  const questions = await service.generateQuestions('behavioral', {});
+  console.log(`Generated ${questions.length} questions`);
+
   const exchanges = [
     '__START__',
     'Я работал в команде из 5 человек, мы делали мобильное приложение.',
@@ -16,7 +20,7 @@ async function main() {
   for (const userText of exchanges) {
     console.log(`\n[USER]: ${userText}`);
     process.stdout.write('[AI]: ');
-    for await (const token of service.streamAnswer('behavioral', history, userText)) {
+    for await (const token of service.streamAnswer('behavioral', questions, history, userText)) {
       process.stdout.write(token);
     }
     console.log();

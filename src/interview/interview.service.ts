@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Interview } from './entities/interview.entity';
+import { Interview, GeneratedQuestion } from './entities/interview.entity';
 import { InterviewAnswer } from './entities/interview-answer.entity';
 import { CreateInterviewDto } from './dto/create-interview.dto';
 import { AiService } from '../ai/ai.service';
@@ -23,8 +23,16 @@ export class InterviewService {
       user_id: userId,
       type: dto.type,
       status: 'pending',
+      config: dto.config ?? null,
     });
     return this.interviewRepository.save(interview);
+  }
+
+  async updateQuestions(
+    id: number,
+    questions: GeneratedQuestion[],
+  ): Promise<void> {
+    await this.interviewRepository.update(id, { questions });
   }
 
   async findAllByUser(userId: number): Promise<Interview[]> {
