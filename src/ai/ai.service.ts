@@ -231,6 +231,61 @@ Rules:
     return text.trim();
   }
 
+  async evaluateAnswer(
+    question: string,
+    userAnswer: string,
+    interviewType: string,
+  ): Promise<{ score: 'correct' | 'partial' | 'incorrect'; feedback: string }> {
+    const schema = z.object({
+      score: z.enum(['correct', 'partial', 'incorrect']),
+      feedback: z.string(),
+    });
+
+    const { output } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system: `You are an experienced technical interviewer conducting a ${interviewType} interview.
+Evaluate the candidate's answer to the interview question.
+Rules:
+- score "correct": answer is complete and accurate
+- score "partial": answer has correct parts but is missing key points
+- score "incorrect": answer is wrong or does not address the question
+- feedback: 1–2 sentences, constructive, highlight what was good or missing
+- Use the same language as the candidate's answer`,
+      output: Output.object({ schema }),
+      prompt: `Question: ${question}\n\nCandidate's answer: ${userAnswer}`,
+    });
+
+    return output;
+  }
+
+  async generateInterviewReport(
+    answers: {
+      question: string;
+      userAnswer: string;
+      score: string;
+      feedback: string;
+    }[],
+    interviewType: string,
+  ): Promise<{ totalScore: number; feedback: string }> {
+    const schema = z.object({
+      totalScore: z.number().min(0).max(100),
+      feedback: z.string(),
+    });
+
+    const { output } = await generateText({
+      model: anthropic('claude-haiku-4-5'),
+      system: `You are an experienced technical interviewer. Summarize the candidate's overall performance in a ${interviewType} interview.
+Rules:
+- totalScore: 0–100, overall performance score based on all answers
+- feedback: 3–5 sentences, overall assessment highlighting key strengths and areas for improvement
+- Use the same language as the candidate's answers`,
+      output: Output.object({ schema }),
+      prompt: `Interview answers:\n${JSON.stringify(answers, null, 2)}`,
+    });
+
+    return output;
+  }
+
   async searchGoogle(query: string): Promise<string> {
     try {
       const res = await fetch('https://api.tavily.com/search', {
