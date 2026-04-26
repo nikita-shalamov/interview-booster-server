@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Resume } from '../resume/entities/resume.entity';
-import { Chat } from '../chat/entities/chat.entity';
+import { Interview } from '../interview/entities/interview.entity';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { RoadmapService } from '../roadmap/roadmap.service';
 
@@ -11,8 +11,8 @@ export class DashboardService {
   constructor(
     @InjectRepository(Resume)
     private readonly resumeRepository: Repository<Resume>,
-    @InjectRepository(Chat)
-    private readonly chatRepository: Repository<Chat>,
+    @InjectRepository(Interview)
+    private readonly interviewRepository: Repository<Interview>,
     private readonly onboardingService: OnboardingService,
     private readonly roadmapService: RoadmapService,
   ) {}
@@ -29,8 +29,12 @@ export class DashboardService {
           .where('r.user_id = :userId AND r.atsScore IS NOT NULL', { userId })
           .getRawOne()
           .then((r) => (r?.avg ? Math.round(Number(r.avg)) : null)),
-        this.chatRepository.count({ where: { user_id: userId, type: 'hr_interview' } }),
-        this.chatRepository.count({ where: { user_id: userId, type: 'tech_interview' } }),
+        this.interviewRepository.count({
+          where: { user_id: userId, type: In(['behavioral']) },
+        }),
+        this.interviewRepository.count({
+          where: { user_id: userId, type: In(['algorithms', 'system_design', 'full', 'test']) },
+        }),
       ]);
 
     return {
