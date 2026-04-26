@@ -243,13 +243,14 @@ Rules:
 
     const { output } = await generateText({
       model: anthropic('claude-haiku-4-5'),
-      system: `You are an experienced technical interviewer conducting a ${interviewType} interview.
+      system: `You are an experienced technical interviewer conducting a ${interviewType} voice interview.
 Evaluate the candidate's answer to the interview question.
 Rules:
-- score "correct": answer is complete and accurate
-- score "partial": answer has correct parts but is missing key points
+- This is a VOICE interview — the candidate cannot write code. Evaluate conceptual understanding, not syntax or code examples
+- score "correct": answer demonstrates clear understanding of the concept
+- score "partial": answer has correct parts but is missing key points or depth
 - score "incorrect": answer is wrong or does not address the question
-- feedback: 1–2 sentences, constructive, highlight what was good or missing
+- feedback: 1–2 sentences, constructive, highlight what was good or missing. Never penalize for lack of code examples
 - Use the same language as the candidate's answer`,
       output: Output.object({ schema }),
       prompt: `Question: ${question}\n\nCandidate's answer: ${userAnswer}`,
@@ -268,40 +269,22 @@ Rules:
     interviewType: string,
   ): Promise<{ totalScore: number; feedback: string }> {
     const schema = z.object({
-      totalScore: z.number().min(0).max(100),
+      totalScore: z.number(),
       feedback: z.string(),
     });
 
     const { output } = await generateText({
       model: anthropic('claude-haiku-4-5'),
-      system: `You are an experienced technical interviewer. Summarize the candidate's overall performance in a ${interviewType} interview.
+      system: `You are an experienced technical interviewer. Summarize the candidate's overall performance in a ${interviewType} voice interview.
 Rules:
-- totalScore: 0–100, overall performance score based on all answers
-- feedback: 3–5 sentences, overall assessment highlighting key strengths and areas for improvement
+- This is a VOICE interview — the candidate cannot write code. Evaluate only conceptual understanding and ability to explain ideas verbally
+- totalScore: 0–100, overall performance score based on conceptual understanding across all answers
+- feedback: 3–5 sentences, overall assessment highlighting key strengths and areas for improvement. Never penalize for lack of code examples
 - Use the same language as the candidate's answers`,
       output: Output.object({ schema }),
       prompt: `Interview answers:\n${JSON.stringify(answers, null, 2)}`,
     });
 
     return output;
-  }
-
-  async searchGoogle(query: string): Promise<string> {
-    try {
-      const res = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.TAVILY_API_KEY}`,
-        },
-        body: JSON.stringify({ query, max_results: 1 }),
-      });
-
-      const data = await res.json();
-      return data.results[0].content as string;
-    } catch (error) {
-      this.logger.error('searchGoogle failed', error);
-      return '';
-    }
   }
 }

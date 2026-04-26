@@ -13,6 +13,7 @@ export class VoiceSession {
   isAiSpeaking: boolean = false;
   isAiAudioStarted: boolean = false;
   isCancelled: boolean = false;
+  isProcessing: boolean = false;  // guard against parallel transcript handling
   conversationHistory: Message[] = [];
   transcripts: Transcript[] = [];
   deepgramConnection: DeepgramConnection | null = null;

@@ -34,48 +34,28 @@ export class VoiceInterviewGateway
     private readonly ttsService: CartesiaTtsService,
     private readonly bargeInHandler: BargeInHandler,
     private readonly configService: ConfigService,
-  ) {
-    this.logger.log('🎙️ VoiceInterviewGateway initialized');
-  }
+  ) {}
 
-  handleConnection(client: Socket) {
-    const userId = this.getUserId(client);
-    this.logger.log(
-      `[handleConnection] client=${client.id} userId=${userId} — socket connected`,
-    );
-  }
+  handleConnection(_client: Socket) {}
 
   @SubscribeMessage('start_session')
   async onStartSession(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { interviewId: number; language: 'ru' | 'en' },
   ) {
-    this.logger.log(
-      `[start_session] ▶️  START: client=${client.id} interviewId=${data.interviewId} language=${data.language}`,
-    );
-
     try {
       const interview = await this.interviewService.findOne(
         data.interviewId,
         this.getUserId(client),
       );
-      this.logger.log(
-        `[start_session] 📋 Interview found: id=${interview.id} type=${interview.type} status=${interview.status}`,
-      );
 
       let questions = interview.questions;
       if (!questions) {
-        this.logger.log(
-          `[start_session] 🤖 Generating questions for ${interview.type}...`,
-        );
         questions = await this.llmService.generateQuestions(
           interview.type,
           interview.config ?? {},
         );
         await this.interviewService.updateQuestions(interview.id, questions);
-        this.logger.log(
-          `[start_session] ✅ Generated and saved ${questions.length} questions`,
-        );
       }
 
       const session = new VoiceSession(
@@ -85,11 +65,7 @@ export class VoiceInterviewGateway
       );
       session.questions = questions;
       this.sessions.set(client.id, session);
-      this.logger.log(
-        `[start_session] 🎤 VoiceSession created: type=${interview.type} language=${data.language}`,
-      );
 
-      this.logger.log(`[start_session] 🎯 Creating Deepgram STT stream for ${data.language}...`);
       session.deepgramConnection = await this.sttService.createStream(
         data.language,
         (text) => this.onFinalTranscript(client, session, text),
@@ -98,27 +74,21 @@ export class VoiceInterviewGateway
             this.bargeInHandler.onSpeechStarted(session, client);
           }
         },
+        (text) => {
+          if (!session.isAiSpeaking && !session.isProcessing) {
+            client.emit('transcript_interim', { text });
+          }
+        },
       );
-      this.logger.log(`[start_session] ✅ Deepgram STT stream ready`);
-
       if (session.audioBuffer.length > 0) {
-        this.logger.log(
-          `[start_session] ⚠️  Dropping ${session.audioBuffer.length} pre-session audio chunks`,
-        );
         session.audioBuffer = [];
       }
 
-      this.logger.log(`[start_session] 🤖 Running first AI turn (greeting)...`);
       await this.runAiTurn(client, session, '__START__');
-      this.logger.log(
-        `[start_session] ✅ First AI turn completed, emitting session_ready`,
-      );
-
       client.emit('session_ready');
-      this.logger.log(`[start_session] ✅ DONE: Session ready, awaiting user input`);
     } catch (err) {
       this.logger.error(
-        `[start_session] ❌ FAILED: ${err}`,
+        `start_session failed: ${err}`,
         err instanceof Error ? err.stack : '',
       );
       client.emit('session_error', {
@@ -142,7 +112,10 @@ export class VoiceInterviewGateway
       return;
     }
 
-    if (session.isAiSpeaking) return;
+    if (session.isAiSpeaking) {
+      this.logger.debug(`[audio_chunk] skipped — AI is speaking`);
+      return;
+    }
 
     this.sttService.sendAudio(session.deepgramConnection, chunk);
   }
@@ -150,22 +123,13 @@ export class VoiceInterviewGateway
   @SubscribeMessage('end_session')
   async onEndSession(@ConnectedSocket() client: Socket) {
     const session = this.sessions.get(client.id);
-    if (!session) {
-      this.logger.warn(`[end_session] No session for client=${client.id}`);
-      return;
-    }
-    this.logger.log(
-      `[end_session] client=${client.id} interviewId=${session.interviewId}`,
-    );
+    if (!session) return;
     await this.handleEnd(client, session);
   }
 
   async handleDisconnect(client: Socket) {
     const session = this.sessions.get(client.id);
     if (!session) return;
-    this.logger.log(
-      `[disconnect] client=${client.id} interviewId=${session.interviewId}`,
-    );
     if (session.deepgramConnection) {
       this.sttService.closeStream(session.deepgramConnection);
     }
@@ -177,13 +141,17 @@ export class VoiceInterviewGateway
     session: VoiceSession,
     text: string,
   ) {
-    this.logger.log(
-      `[onFinalTranscript] 👤 User said: "${text}"`,
-    );
+    if (session.isProcessing || session.isAiSpeaking) return;
+
+    session.isProcessing = true;
     session.transcripts.push({ role: 'user', text });
     client.emit('transcript', { role: 'user', text });
-    this.logger.log(`[onFinalTranscript] 🤖 Processing user response, generating AI answer...`);
-    await this.runAiTurn(client, session, text);
+
+    try {
+      await this.runAiTurn(client, session, text);
+    } finally {
+      session.isProcessing = false;
+    }
   }
 
   private async runAiTurn(
@@ -191,17 +159,14 @@ export class VoiceInterviewGateway
     session: VoiceSession,
     userText: string,
   ) {
-    this.logger.log(
-      `[runAiTurn] ▶️  START: userText="${userText.slice(0, 80)}" type=${session.interviewType} historyLen=${session.conversationHistory.length}`,
-    );
     session.isAiSpeaking = true;
     session.isAiAudioStarted = false;
     session.isCancelled = false;
 
     let aiText = '';
-    this.logger.log(
-      `[runAiTurn] 🧠 Generating LLM response (type=${session.interviewType})...`,
-    );
+
+    client.emit('transcript_start', { role: 'assistant' });
+
     const tokenStream = this.llmService.streamAnswer(
       session.interviewType,
       session.questions,
@@ -209,17 +174,18 @@ export class VoiceInterviewGateway
       userText,
     );
 
+    const COMPLETE_SIGNAL = 'interview complete';
     const wrappedStream = this.captureTokens(tokenStream, (token) => {
       aiText += token;
+      if (!aiText.toLowerCase().includes(COMPLETE_SIGNAL)) {
+        client.emit('transcript_token', { token });
+      }
     });
 
-    this.logger.log(`[runAiTurn] 🔊 Starting TTS (Text-to-Speech) stream...`);
-    let audioChunksSent = 0;
     await this.ttsService.streamAudio(
       wrappedStream,
       (chunk) => {
         if (!session.isCancelled) {
-          audioChunksSent++;
           session.isAiAudioStarted = true;
           client.emit('audio_chunk', { audio: chunk.toString('base64') });
         }
@@ -227,28 +193,19 @@ export class VoiceInterviewGateway
       () => session.isCancelled,
       session.language,
     );
-    this.logger.log(
-      `[runAiTurn] ✅ TTS finished: audioChunksSent=${audioChunksSent} responseLength=${aiText.length} chars`,
-    );
 
     session.isAiSpeaking = false;
 
     if (aiText) {
-      this.logger.log(`[runAiTurn] 🤖 AI response: "${aiText}"`);
-      session.transcripts.push({ role: 'assistant', text: aiText });
-      client.emit('transcript', { role: 'assistant', text: aiText });
-      this.logger.log(`[runAiTurn] ✅ Response sent to client and stored in history`);
+      const cleanText = aiText.replace(/interview complete/gi, '').trim();
+      session.transcripts.push({ role: 'assistant', text: cleanText });
+      client.emit('transcript_end', { role: 'assistant', text: cleanText });
     } else {
-      this.logger.warn(`[runAiTurn] ⚠️  AI returned EMPTY response!`);
+      this.logger.warn('AI returned empty response');
     }
 
     if (aiText.toLowerCase().includes('interview complete')) {
-      this.logger.log(
-        `[runAiTurn] 🏁 "interview complete" detected — ending session`,
-      );
       await this.handleEnd(client, session);
-    } else {
-      this.logger.log(`[runAiTurn] ✅ DONE: Awaiting next user input`);
     }
   }
 
@@ -263,9 +220,11 @@ export class VoiceInterviewGateway
   }
 
   private async handleEnd(client: Socket, session: VoiceSession) {
-    this.logger.log(
-      `[handleEnd] 🏁 START: Completing interview interviewId=${session.interviewId} totalExchanges=${session.transcripts.length}`,
-    );
+    if (session.deepgramConnection) {
+      this.sttService.closeStream(session.deepgramConnection);
+    }
+    this.sessions.delete(client.id);
+    client.emit('session_ended');
 
     const pairs: { question: string; answer: string }[] = [];
     for (let i = 0; i < session.transcripts.length - 1; i++) {
@@ -275,63 +234,37 @@ export class VoiceInterviewGateway
         pairs.push({ question: curr.text, answer: next.text });
       }
     }
-    this.logger.log(`[handleEnd] 📊 Found ${pairs.length} Q&A pairs to save`);
 
-    for (const { question, answer } of pairs) {
-      this.logger.log(
-        `[handleEnd] 💾 Saving Q&A: Q="${question}" A="${answer}"`,
-      );
-      await this.interviewService.saveAnswer(
-        session.interviewId,
-        question,
-        answer,
-      );
-    }
-
-    this.logger.log(`[handleEnd] 📝 Marking interview as complete...`);
-    try {
-      await this.interviewService.complete(
-        session.interviewId,
-        this.getUserId(client),
-      );
-      this.logger.log(`[handleEnd] ✅ Interview marked complete in database`);
-    } catch (err) {
-      this.logger.error(`[handleEnd] ❌ complete() FAILED: ${err}`);
-    }
-
-    if (session.deepgramConnection) {
-      this.logger.log(`[handleEnd] 🔌 Closing Deepgram connection...`);
-      this.sttService.closeStream(session.deepgramConnection);
-    }
-
-    this.sessions.delete(client.id);
-    this.logger.log(
-      `[handleEnd] 📤 Emitting session_ended to client, cleanup complete`,
-    );
-    client.emit('session_ended');
-    this.logger.log(`[handleEnd] ✅ DONE`);
+    const userId = this.getUserId(client);
+    (async () => {
+      for (const { question, answer } of pairs) {
+        try {
+          await this.interviewService.saveAnswer(session.interviewId, question, answer);
+        } catch (err) {
+          this.logger.error(`saveAnswer failed: ${err instanceof Error ? err.stack : err}`);
+        }
+      }
+      try {
+        await this.interviewService.complete(session.interviewId, userId);
+      } catch (err) {
+        this.logger.error(`complete() failed: ${err instanceof Error ? err.stack : err}`);
+      }
+    })();
   }
 
   private getUserId(client: Socket): number {
     const raw =
-      (client.handshake.auth as any)?.token ??
+      (client.handshake.auth as Record<string, string>)?.token ??
       client.handshake.headers?.authorization;
     const token = raw?.replace(/^Bearer\s+/i, '');
 
-    if (!token) {
-      this.logger.warn(`[getUserId] No token found for client=${client.id}`);
-      return 0;
-    }
+    if (!token) return 0;
 
     try {
       const secret = this.configService.get<string>('JWT_SECRET')!;
       const payload = jwt.verify(token, secret) as { id: number };
-      this.logger.log(`[getUserId] client=${client.id} userId=${payload.id}`);
       return payload.id;
-    } catch (err) {
-      this.logger.error(
-        `[getUserId] JWT verify failed for client=${client.id}: ${err}`,
-      );
+    } catch {
       return 0;
     }
   }

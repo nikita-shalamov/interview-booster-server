@@ -16,11 +16,8 @@ export class DeepgramSttService {
     language: 'ru' | 'en',
     onFinalTranscript: (text: string) => void,
     onSpeechStarted: () => void,
+    onInterimTranscript?: (text: string) => void,
   ): Promise<DeepgramConnection> {
-    this.logger.log(
-      `[createStream] 🎤 Creating Deepgram stream: language=${language} apiKeyPresent=${!!process.env.DEEPGRAM_API_KEY}`,
-    );
-
     const connection = await this.client.listen.v1.connect({
       Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
       model: 'nova-3',
@@ -30,35 +27,58 @@ export class DeepgramSttService {
       channels: 1,
       smart_format: 'true',
       interim_results: 'true',
-      utterance_end_ms: 1000,
+      utterance_end_ms: 2000,
       vad_events: 'true',
+      endpointing: 1000,
     });
+
+    let isFinalBuffer: string[] = [];
 
     connection.on('message', (msg) => {
       if (msg.type === 'SpeechStarted') {
-        this.logger.log(`[Deepgram] 🔊 SpeechStarted (VAD detected user speaking)`);
         onSpeechStarted();
+        return;
+      }
+
+      if (msg.type === 'UtteranceEnd') {
+        const buffered = isFinalBuffer.join(' ').trim();
+        if (buffered) {
+          onFinalTranscript(buffered);
+          isFinalBuffer = [];
+        }
         return;
       }
 
       if (msg.type === 'Results' && msg.is_final && msg.speech_final) {
         const text = msg.channel.alternatives[0]?.transcript?.trim();
         if (text) {
-          this.logger.log(`[Deepgram] ✅ Final transcript: "${text}"`);
-          onFinalTranscript(text);
+          isFinalBuffer.push(text);
+        }
+        const buffered = isFinalBuffer.join(' ').trim();
+        if (buffered) {
+          onFinalTranscript(buffered);
+          isFinalBuffer = [];
+        } else {
+          this.logger.warn('speech_final fired but buffer is empty');
         }
       } else if (msg.type === 'Results' && msg.is_final) {
         const text = msg.channel.alternatives[0]?.transcript?.trim();
         if (text) {
-          this.logger.debug(
-            `[Deepgram] 📝 Interim is_final (not speech_final): "${text}"`,
-          );
+          isFinalBuffer.push(text);
+        }
+      } else if (msg.type === 'Results' && !msg.is_final) {
+        const text = msg.channel.alternatives[0]?.transcript?.trim();
+        if (text) {
+          const full = isFinalBuffer.length
+            ? isFinalBuffer.join(' ') + ' ' + text
+            : text;
+          onInterimTranscript?.(full);
         }
       }
     });
 
     connection.on('error', (err) => {
-      this.logger.error(`[Deepgram] ❌ WebSocket error: ${err}`);
+      this.logger.error(`Deepgram WebSocket error: ${err}`);
     });
 
     connection.connect();
@@ -74,7 +94,6 @@ export class DeepgramSttService {
 
       connection.on('open', () => {
         clearTimeout(timer);
-        this.logger.log(`[createStream] ✅ Deepgram WebSocket connected and ready`);
         resolve();
       });
 
@@ -96,7 +115,6 @@ export class DeepgramSttService {
   }
 
   closeStream(connection: DeepgramConnection): void {
-    this.logger.log(`[closeStream] Closing Deepgram stream`);
     try {
       connection.sendFinalize({ type: 'Finalize' });
       connection.close();
