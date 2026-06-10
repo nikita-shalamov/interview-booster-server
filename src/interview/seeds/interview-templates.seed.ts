@@ -211,26 +211,6 @@ export const INTERVIEW_TEMPLATES: Partial<InterviewTemplate>[] = [
     isActive: true,
   },
 
-  // ===== TEST (для знакомства) =====
-  {
-    slug: 'test-intro',
-    name: 'Пробное интервью (знакомство)',
-    description: 'Легкое пробное интервью для знакомства с форматом',
-    category: 'behavioral',
-    interviewType: 'test',
-    applicableRoles: [],
-    minLevel: 'junior',
-    maxLevel: 'senior',
-    skills: [],
-    topics: ['Introduction', 'Getting Started'],
-    estimatedDuration: 10,
-    questionCount: 3,
-    difficulty: 'junior',
-    isRecommended: true,
-    recommendationOrder: 1,
-    isActive: true,
-  },
-
   // ===== ДОПОЛНИТЕЛЬНЫЕ =====
   {
     slug: 'css-advanced-middle',

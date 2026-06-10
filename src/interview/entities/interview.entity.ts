@@ -11,7 +11,11 @@ import { User } from '../../users/entities/user.entity';
 import { InterviewAnswer } from './interview-answer.entity';
 import { InterviewTemplate } from './interview-template.entity';
 
-export type InterviewType = 'full' | 'algorithms' | 'system_design' | 'behavioral' | 'test';
+export type InterviewType =
+  | 'full'
+  | 'algorithms'
+  | 'system_design'
+  | 'behavioral';
 export type InterviewStatus = 'pending' | 'in_progress' | 'completed';
 
 export type InterviewConfig = {

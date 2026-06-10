@@ -179,7 +179,7 @@ export class InterviewTemplateService {
     return this.templateRepo.find({
       where: {
         isActive: true,
-        slug: In(['behavioral-all-levels', 'full-interview-middle', 'test-intro']),
+        slug: In(['behavioral-all-levels', 'full-interview-middle']),
       },
       order: { recommendationOrder: 'ASC' },
       take: 3,
@@ -191,7 +191,7 @@ export class InterviewTemplateService {
     prompt: string,
   ): Promise<InterviewTemplate> {
     const llmPrompt = `You are an interview template generator. Based on the user's request, create an interview template.
-Use the same language as the user's request for all text fields (name, description, tips).
+Write all text fields (name, description, tips) in Russian by default. Only use a different language if the user's request is clearly in a non-Russian language.
 
 User request: "${prompt}"
 

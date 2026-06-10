@@ -13,13 +13,7 @@ export interface Message {
 }
 
 const SYSTEM_PROMPTS: Record<InterviewType, string> = {
-  test: `You are a friendly interviewer conducting a short introductory session.
-Ask exactly these 3 questions in order, one at a time:
-1. "Привет! Это тестовое интервью, чтобы ты мог познакомиться с форматом. Скажи, как тебя зовут?"
-2. "Где ты живёшь?"
-3. "Какое направление в IT тебя интересует?"
-After the third answer give a short warm closing and end your message with the exact phrase: "interview complete"`,
-  behavioral: `Ты профессиональный HR-интервьюер, проводящий поведенческое интервью на русском языке.
+  behavioral:`Ты профессиональный HR-интервьюер, проводящий поведенческое интервью на русском языке.
 Задавай вопросы по методу STAR (Ситуация, Задача, Действие, Результат).
 Фокусируйся на прошлом опыте, командной работе, разрешении конфликтов, лидерстве и soft skills.`,
 
@@ -62,7 +56,6 @@ export class LlmInterviewerService {
     config: InterviewConfig,
   ): Promise<GeneratedQuestion[]> {
     const questionCounts: Record<InterviewType, number> = {
-      test: 3,
       behavioral: 5,
       algorithms: 5,
       system_design: 4,
@@ -103,10 +96,7 @@ export class LlmInterviewerService {
   ): AsyncGenerator<string> {
     history.push({ role: 'user', content: userText });
 
-    const questionsSection =
-      interviewType !== 'test'
-        ? `\n\nYou MUST follow this exact list of questions. Do NOT ask any questions outside this list:\n${questions.map((q) => `${q.index}. ${q.text}`).join('\n')}\n\nRules for question flow:\n- Ask each question in order, one at a time\n- You may ask ONE brief clarifying follow-up if the answer is vague or incomplete, then move on\n- Do NOT invent new topics, new questions, or go off-script\n- After the last question is answered, close the interview and say "interview complete"`
-        : '';
+    const questionsSection = `\n\nYou MUST follow this exact list of questions. Do NOT ask any questions outside this list:\n${questions.map((q) => `${q.index}. ${q.text}`).join('\n')}\n\nRules for question flow:\n- Ask each question in order, one at a time\n- You may ask ONE brief clarifying follow-up if the answer is vague or incomplete, then move on\n- Do NOT invent new topics, new questions, or go off-script\n- After the last question is answered, close the interview and say "interview complete"`;
 
     const systemPrompt = `${SYSTEM_PROMPTS[interviewType]}${questionsSection}
 

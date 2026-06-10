@@ -127,7 +127,8 @@ Rules:
 - "original" must match exactly what is in the resume — do not paraphrase or trim
 - Focus on: quantifying achievements, stronger action verbs, adding missing context
 - Suggest improvements for 4-8 items across different sections
-- Tailor to level: junior — clarity and concrete results; senior — metrics and business impact`,
+- Tailor to level: junior — clarity and concrete results; senior — metrics and business impact
+- "improved" and "reason" fields MUST be in Russian by default. Only use the resume's language for "improved" if the resume is clearly not in Russian. "reason" is ALWAYS in Russian.`,
       output: Output.object({ schema: diffListSchema }),
       prompt: JSON.stringify(parsedContent),
     });
@@ -154,7 +155,7 @@ Rules:
 - recommendations: top 3–5 actionable improvements
 - suitableRoles: job titles this resume is suitable for
 - estimatedLevel: your assessment of the candidate's level (junior/middle/senior)
-- Use the same language as the resume`,
+- ALL text fields (strengths, weaknesses, issues.description, recommendations, suitableRoles) MUST be written in Russian, regardless of the resume language`,
       output: Output.object({ schema: evaluationSchema }),
       prompt: JSON.stringify(parsedContent),
     });
@@ -182,7 +183,7 @@ Rules:
 - atsScore: 0–100, honest ATS compatibility score
 - issues: specific ATS problems with severity (low/medium/high)
 - recommendations: actionable fixes to improve ATS score
-- Use the same language as the resume`,
+- ALL text fields (issues, recommendations) MUST be written in Russian, regardless of the resume language`,
       output: Output.object({ schema: atsSchema }),
       prompt: JSON.stringify(parsedContent),
     });
@@ -207,14 +208,14 @@ Rules:
 - Address the specific requirements from the job description
 - Highlight relevant experience and skills from the resume
 - 3–4 paragraphs, professional tone
-- Use the same language as the resume
+- Write the cover letter in Russian by default. Only use a different language if the resume is clearly not in Russian — in that case match the resume language.
 - Return only the cover letter text, no subject line, no placeholders`
         : `You are a professional cover letter writer. Write a compelling universal cover letter based on the resume.
 Context: candidate role — ${role}, level — ${level}.
 Rules:
 - Highlight the strongest skills and achievements from the resume
 - 3–4 paragraphs, professional tone
-- Use the same language as the resume
+- Write the cover letter in Russian by default. Only use a different language if the resume is clearly not in Russian — in that case match the resume language.
 - Return only the cover letter text, no subject line, no placeholders`;
 
     const prompt =
@@ -251,7 +252,7 @@ Rules:
 - score "partial": answer has correct parts but is missing key points or depth
 - score "incorrect": answer is wrong or does not address the question
 - feedback: 1–2 sentences, constructive, highlight what was good or missing. Never penalize for lack of code examples
-- Use the same language as the candidate's answer`,
+- Write feedback in Russian by default. Only switch to the candidate's language if they clearly answered in a non-Russian language.`,
       output: Output.object({ schema }),
       prompt: `Question: ${question}\n\nCandidate's answer: ${userAnswer}`,
     });
@@ -280,7 +281,7 @@ Rules:
 - This is a VOICE interview — the candidate cannot write code. Evaluate only conceptual understanding and ability to explain ideas verbally
 - totalScore: 0–100, overall performance score based on conceptual understanding across all answers
 - feedback: 3–5 sentences, overall assessment highlighting key strengths and areas for improvement. Never penalize for lack of code examples
-- Use the same language as the candidate's answers`,
+- Write feedback in Russian by default. Only switch to the candidate's language if they clearly answered in a non-Russian language.`,
       output: Output.object({ schema }),
       prompt: `Interview answers:\n${JSON.stringify(answers, null, 2)}`,
     });

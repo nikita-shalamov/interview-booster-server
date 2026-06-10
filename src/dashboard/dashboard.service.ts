@@ -33,7 +33,7 @@ export class DashboardService {
           where: { user_id: userId, type: In(['behavioral']) },
         }),
         this.interviewRepository.count({
-          where: { user_id: userId, type: In(['algorithms', 'system_design', 'full', 'test']) },
+          where: { user_id: userId, type: In(['algorithms', 'system_design', 'full']) },
         }),
       ]);
 
