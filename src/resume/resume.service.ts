@@ -3,6 +3,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,6 +32,7 @@ export class ResumeService {
     @InjectRepository(ResumeDiff)
     private readonly diffRepository: Repository<ResumeDiff>,
     private readonly aiService: AiService,
+    @Inject(forwardRef(() => OnboardingService))
     private readonly onboardingService: OnboardingService,
     private readonly roadmapService: RoadmapService,
   ) {}

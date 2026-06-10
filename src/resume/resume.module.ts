@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -13,7 +13,7 @@ import { RoadmapModule } from '../roadmap/roadmap.module';
 @Module({
   imports: [
     AiModule,
-    OnboardingModule,
+    forwardRef(() => OnboardingModule),
     RoadmapModule,
     TypeOrmModule.forFeature([Resume, ResumeDiff]),
     MulterModule.register({

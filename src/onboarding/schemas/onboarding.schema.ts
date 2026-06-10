@@ -14,5 +14,4 @@ export const onboardingAnalysisSchema = z.object({
   good: z.array(z.string()).min(1),
   bad: z.array(z.string()).min(1),
   roadmap: z.array(roadmapItemSchema).min(1),
-  resumeText: z.string(),
 });

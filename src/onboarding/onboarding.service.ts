@@ -24,7 +24,7 @@ export class OnboardingService {
   ) {}
 
   async create(dto: CreateOnboardingDto): Promise<Onboarding> {
-    const aiResults = await this.generateOnboardingResults(dto.messages);
+    const aiResults = await this.generateOnboardingResults(dto.messages, dto.resumeText);
     const { roadmap, ...onboardingAiData } = aiResults ?? {};
 
     const onboarding = await this.onboardingRepository.save(
@@ -70,6 +70,7 @@ export class OnboardingService {
 
   private async generateOnboardingResults(
     messages: UIMessage[],
+    resumeText?: string,
   ): Promise<OnboardingAnalysisResult | undefined> {
     const cleanedMessages = messages.map((msg) => ({
       ...msg,
@@ -97,11 +98,7 @@ export class OnboardingService {
     }
 
     const data = JSON.parse(textContent);
-    const system = buildOnboardingPrompt(
-      data.role,
-      data.level,
-      data.resumeText,
-    );
+    const system = buildOnboardingPrompt(data.role, data.level, resumeText);
 
     const { output } = await generateText({
       model: anthropic('claude-haiku-4-5'),

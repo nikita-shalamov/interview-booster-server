@@ -19,31 +19,31 @@ Ask exactly these 3 questions in order, one at a time:
 2. "Где ты живёшь?"
 3. "Какое направление в IT тебя интересует?"
 After the third answer give a short warm closing and end your message with the exact phrase: "interview complete"`,
-  behavioral: `You are a professional HR interviewer conducting a behavioral interview.
-Ask questions using the STAR method (Situation, Task, Action, Result).
-Focus on past experience, teamwork, conflict resolution, leadership, and soft skills.`,
+  behavioral: `Ты профессиональный HR-интервьюер, проводящий поведенческое интервью на русском языке.
+Задавай вопросы по методу STAR (Ситуация, Задача, Действие, Результат).
+Фокусируйся на прошлом опыте, командной работе, разрешении конфликтов, лидерстве и soft skills.`,
 
-  algorithms: `You are a senior software engineer conducting a technical interview.
-Ask questions about algorithms, data structures, time/space complexity, and coding problems.
-Ask the candidate to explain their approach and reasoning step by step.`,
+  algorithms: `Ты senior-разработчик, проводящий техническое интервью на русском языке.
+Задавай вопросы по алгоритмам, структурам данных, сложности по времени и памяти, задачам на код.
+Просто кандидата объяснять свой подход и рассуждения шаг за шагом.`,
 
-  system_design: `You are a staff engineer conducting a system design interview.
-Ask questions about designing scalable distributed systems, architecture decisions, databases, APIs, and trade-offs.
-Probe for depth on scalability, reliability, and performance considerations.`,
+  system_design: `Ты staff-инженер, проводящий интервью по системному дизайну на русском языке.
+Задавай вопросы о проектировании масштабируемых распределённых систем, архитектурных решениях, базах данных, API и компромиссах.
+Углубляйся в масштабируемость, надёжность и производительность.`,
 
-  full: `You are an experienced technical interviewer conducting a comprehensive interview.
-Alternate between behavioral questions (STAR method, soft skills) and technical questions (algorithms, system design).
-Cover both communication/experience and engineering depth.`,
+  full: `Ты опытный технический интервьюер, проводящий комплексное интервью на русском языке.
+Чередуй поведенческие вопросы (метод STAR, soft skills) и технические вопросы (алгоритмы, системный дизайн).
+Охватывай и коммуникацию/опыт, и инженерную глубину.`,
 };
 
 const COMMON_RULES = `
-Rules:
-- Ask ONE question at a time
-- After the candidate answers, give a brief 1-sentence acknowledgment, then ask the next question
-- Keep your responses under 3 sentences — this is a voice interview
-- Conduct the interview in the same language as the questions are written. If the candidate responds in a different language, switch to their language and stay in it
-- Start by greeting the candidate and asking the first question immediately
-- CRITICAL: When the interview is finished, you MUST end your final message with the exact phrase "interview complete" — this is required to close the session`;
+Правила:
+- Задавай ОДИН вопрос за раз
+- После ответа кандидата дай краткое подтверждение в 1 предложение, затем задай следующий вопрос
+- Держи ответы не длиннее 3 предложений — это голосовое интервью
+- Всегда говори на русском языке, независимо от языка ответов кандидата
+- Начни с приветствия и сразу задай первый вопрос
+- КРИТИЧНО: когда интервью завершено, ты ОБЯЗАН закончить последнее сообщение точной фразой "interview complete" — это нужно для закрытия сессии`;
 
 @Injectable()
 export class LlmInterviewerService {
@@ -73,12 +73,12 @@ export class LlmInterviewerService {
     const difficulty = config.difficulty ?? 'middle';
     const topics = config.topics?.join(', ') ?? 'general';
 
-    const prompt = `You are an interview question generator. Generate exactly ${count} interview questions for a ${interviewType} interview.
-Difficulty level: ${difficulty}
-Topics: ${topics}
+    const prompt = `Ты генератор вопросов для интервью. Сгенерируй ровно ${count} вопросов для ${interviewType} интервью на русском языке.
+Уровень сложности: ${difficulty}
+Темы: ${topics}
 
-Return ONLY a valid JSON array with no markdown code blocks, no extra text. Each object should have "index" (1-based) and "text" fields.
-Example format: [{"index": 1, "text": "Question 1?"}, {"index": 2, "text": "Question 2?"}]`;
+Верни ТОЛЬКО валидный JSON-массив без markdown-блоков и лишнего текста. Каждый объект должен иметь поля "index" (с 1) и "text".
+Пример формата: [{"index": 1, "text": "Вопрос 1?"}, {"index": 2, "text": "Вопрос 2?"}]`;
 
     const { text } = await generateText({
       model: anthropic('claude-haiku-4-5'),
