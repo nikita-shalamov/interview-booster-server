@@ -19,7 +19,7 @@ export class CartesiaTtsService {
     const ws = await this.client.tts.websocket();
 
     const context = ws.context({
-      model_id: 'sonic-2-2025-03-07',
+      model_id: 'sonic-3',
       voice: { id: process.env.CARTESIA_VOICE_ID!, mode: 'id' },
       output_format: {
         container: 'raw',
@@ -43,9 +43,9 @@ export class CartesiaTtsService {
     language: 'ru' | 'en',
   ): Promise<void> {
     const sendChunk = (transcript: string, cont: boolean) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       (context as any)._ws.send({
-        model_id: 'sonic-2-2025-03-07',
+        model_id: 'sonic-3',
         voice: { id: process.env.CARTESIA_VOICE_ID!, mode: 'id' },
         output_format: {
           container: 'raw',
